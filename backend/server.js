@@ -62,6 +62,16 @@ app.post('/run-etl', upload.single('inputFile'), async (req, res) => {
   } catch (err) {
     return res.json({ success: false, error: err.message });
   }
+
 });
 
-const server = app.listen(5000, () => console.log('Backend running on :5000'));
+// Serve output file for download:
+app.get('/download', (req, res) => {
+    const filePath = path.resolve(__dirname, 'data/output.csv');
+    res.download(filePath, 'structured_table.csv'); // triggers file save dialog
+});
+
+// Make sure the server listens on correct port:
+app.listen(5000, () => {
+    console.log("Backend running on http://localhost:5000");
+});

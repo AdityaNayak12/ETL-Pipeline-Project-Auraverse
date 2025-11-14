@@ -1,7 +1,0 @@
-userId,name,profile_age,profile_active,tags,created,transactionId,amount,currency,items,completed,event,at,user,metadata,surveyId,responses,timestamp,misc,numberVal,boolVal,nullVal,list,record_type,profile,items_0_product,items_0_qty,items_1_product,items_1_qty,user_id,user_name,metadata_source,metadata_success,metadata_attempts,responses_0_question,responses_0_score,responses_1_question,responses_1_answer,num_columns,num_nulls
-1.0,Alice,28.0,True,"admin,beta",2025-10-15T14:23:00Z,,,,,,,,,,,,,,,,,,user,,,,,,,,,,,,,,,7,31
-2.0,vivan,28.0,True,"admin,sigma",2025-10-123T14:23:00Z,,,,,,,,,,,,,,,,,,user,,,,,,,,,,,,,,,7,31
-,,,,,,txn_1001,450.75,USD,,False,,,,,,,,,,,,,user,,Laptop,1.0,Pen,3.0,,,,,,,,,,9,29
-,,,,,,,,,,,login,2025-10-16T10:12:00Z,,,,,,,,,,,user,,,,,,2.0,Bob,web,True,2.0,,,,,8,30
-,,,,,,,,,,,,,,,s33,,1700000000.0,,,,,,user,,,,,,,,,,,Satisfaction,4.0,Recommend,yes,7,31
-,,,,,,,,,,,,,,,,,,Just a string,99.0,True,,"10,foo,None",user,,,,,,,,,,,,,,,5,33

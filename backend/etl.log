@@ -1,5 +1,0 @@
-2025-11-12 09:25:26,260 [INFO] ETL job started.
-2025-11-12 09:25:26,264 [INFO] Extracted json data successfully on attempt 1
-2025-11-12 09:25:26,283 [INFO] Dropped duplicates on 38 safe columns.
-2025-11-12 09:25:26,285 [INFO] Dropped all-NaN rows only.
-2025-11-12 09:25:26,291 [INFO] ETL pipeline finished.
