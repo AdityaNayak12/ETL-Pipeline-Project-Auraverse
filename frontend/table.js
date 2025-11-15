@@ -4,17 +4,20 @@ document.addEventListener('DOMContentLoaded', () => {
   const loading = document.getElementById('loading');
   const output = document.getElementById('output');
 
+
   form.addEventListener('submit', ev => {
     ev.preventDefault();
     output.innerHTML = '';
     loading.style.display = 'block';
+
 
     let fd = new FormData();
     if (input.files.length) {
       fd.append('inputFile', input.files[0]);
     }
 
-    fetch('http://localhost:5000/run-etl', {
+
+    fetch('http://localhost:5001/run-etl', {
       method: 'POST',
       body: fd,
     })
@@ -34,6 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
   });
 
+
   // Hides columns that are all empty across all rows
   function filterEmptyColumns(rows) {
     if (!rows || rows.length === 0) return {data: [], columns: []};
@@ -50,6 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     return { data: filteredData, columns: nonEmptyCols };
   }
+
 
   function renderTableWithColumnFilter(rows) {
     const { data, columns } = filterEmptyColumns(rows);
