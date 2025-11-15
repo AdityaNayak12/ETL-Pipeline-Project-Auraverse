@@ -1,6 +1,6 @@
 extract:
-  type: json
-  source: data/uploaded_input.json
+  type: txt
+  source: data/uploaded_input.txt
   retry_count: 3
   retry_delay: 2
 transform:

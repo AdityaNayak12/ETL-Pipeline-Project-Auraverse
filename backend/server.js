@@ -20,7 +20,8 @@ app.post('/run-etl', upload.single('inputFile'), async (req, res) => {
     let fileType = null;
     if (req.file) {
       const ext = path.extname(req.file.originalname).toLowerCase();
-      fileType = ext === '.csv' ? 'csv' : 'json';
+      // Use 'csv' for .csv, otherwise use 'txt'
+      fileType = ext === '.csv' ? 'csv' : 'txt';
       uploadedPath = path.join(dataDir, 'uploaded_input' + ext);
       fs.renameSync(req.file.path, uploadedPath);
     }
@@ -62,8 +63,10 @@ app.post('/run-etl', upload.single('inputFile'), async (req, res) => {
   } catch (err) {
     return res.json({ success: false, error: err.message });
   }
-
 });
+
+
+
 
 // Serve output file for download:
 app.get('/download', (req, res) => {

@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
       .then(data => {
         loading.style.display = 'none';
         if (data.success && data.table && data.table.length) {
-          renderTable(data.table);
+          renderTableWithColumnFilter(data.table);
         } else {
           output.innerHTML = `<div style="color:#d02927;font-weight:bold;">Error: ${data.error || 'No data returned.'}</div>`;
         }
@@ -34,14 +34,36 @@ document.addEventListener('DOMContentLoaded', () => {
       });
   });
 
-  function renderTable(rows) {
+  // Hides columns that are all empty across all rows
+  function filterEmptyColumns(rows) {
+    if (!rows || rows.length === 0) return {data: [], columns: []};
+    const allKeys = Object.keys(rows[0]);
+    const nonEmptyCols = allKeys.filter(
+      key => rows.some(
+        row => row[key] != null && row[key].toString().trim() !== "" && row[key] !== "null" && row[key] !== "undefined"
+      )
+    );
+    const filteredData = rows.map(row => {
+      const filteredRow = {};
+      nonEmptyCols.forEach(col => filteredRow[col] = row[col]);
+      return filteredRow;
+    });
+    return { data: filteredData, columns: nonEmptyCols };
+  }
+
+  function renderTableWithColumnFilter(rows) {
+    const { data, columns } = filterEmptyColumns(rows);
+    if (columns.length === 0) {
+      output.innerHTML = "<p>No data to display after filtering empty columns.</p>";
+      return;
+    }
     let html = '<table><thead><tr>';
-    html += Object.keys(rows[0])
-      .map(key => `<th>${key}</th>`)
-      .join('');
+    html += columns.map(col => `<th>${col}</th>`).join('');
     html += '</tr></thead><tbody>';
-    for (let row of rows) {
-      html += '<tr>' + Object.values(row).map(val => `<td>${val !== null ? val : ''}</td>`).join('') + '</tr>';
+    for (let row of data) {
+      html += '<tr>' + columns.map(col =>
+        `<td>${row[col] !== null && row[col] !== undefined ? row[col] : ''}</td>`).join('')
+        + '</tr>';
     }
     html += '</tbody></table>';
     output.innerHTML = html;

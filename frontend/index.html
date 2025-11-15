@@ -5,6 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>ETL Pipeline Dashboard</title>
   <link rel="stylesheet" href="style.css" />
+  <style>
+   table { border-collapse: collapse; width: 100%; margin-top: 16px; }
+   th, td { border: 1px solid #aaa; padding: 5px 8px; text-align: left; }
+   th { background: #0074d9; color: white; }
+   .download-btn { margin-top: 18px; }
+  </style>
 </head>
 <body>
   <nav class="navbar">
@@ -14,22 +20,19 @@
   <main class="container">
     <h1>ETL Pipeline Table Viewer</h1>
     <p class="subtitle">Transform your data with precision and simplicity.</p>
-
     <form id="etlForm">
       <label class="upload-label" for="uploadInput">
-        <input type="file" id="uploadInput" name="inputFile" accept=".json,.csv" hidden />
+        <input type="file" id="uploadInput" name="inputFile" accept=".json,.csv,.txt,.html" hidden />
         <span class="upload-btn">Choose File</span>
       </label>
       <button type="submit" id="runEtlBtn">Run ETL</button>
     </form>
 
-    <div id="loading">Processing, please wait...</div>
+    <div id="loading" style="display:none;">Processing, please wait...</div>
     <div id="output"></div>
-
-    <button onclick="window.location.href='http://localhost:5000/download'">
-  Download Table as CSV
-</button>
-
+    <button class="download-btn" onclick="window.location.href='http://localhost:5000/download'">
+      Download Table as CSV
+    </button>
   </main>
 
   <footer>©️ 2025 ETL Pipeline — Built with precision 🍏</footer>
