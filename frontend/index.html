@@ -1,45 +1,46 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>ETL Pipeline Dashboard</title>
   <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
   <nav class="navbar">
     <div class="logo">ETL<span>Pipeline</span></div>
   </nav>
-
   <main class="container">
     <h1>ETL Pipeline Table Viewer</h1>
     <p class="subtitle">Transform your data with precision and simplicity.</p>
-
+    
     <form id="etlForm">
       <label class="upload-label" for="uploadInput">
         <input type="file" id="uploadInput" name="inputFile" hidden />
         <span class="upload-btn">Choose File</span>
       </label>
-
-      <!-- Display File Name Here -->
       <p id="fileName" class="file-name">No file selected</p>
-
       <button type="submit" id="runEtlBtn">Run ETL</button>
     </form>
 
     <div id="loading" style="display:none;">Processing, please wait...</div>
 
-    <!-- Scrollable wrapper for table -->
+    <!-- Output Table -->
     <div id="outputContainer">
       <div id="output"></div>
     </div>
+
+    <!-- Detected Schema Section (NEW) -->
+    <div id="schemaContainer" style="margin-top:25px;"></div>
 
     <button class="download-btn" onclick="window.location.href='http://localhost:5001/download'">
       Download Table as CSV
     </button>
   </main>
-
   <footer>© 2025 ETL Pipeline — Built with precision 🍏</footer>
   <script src="table.js"></script>
 </body>
+
 </html>

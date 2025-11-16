@@ -204,3 +204,16 @@ thead th {
   background: #007f46;
   transform: scale(1.05);
 }
+
+#schemaContainer h2 {
+  color: #0071e3;
+  margin-bottom: 0.3rem;
+}
+#schemaContainer pre {
+  margin-top: 25px;
+  background: #f8f8fc;
+  border-radius: 8px;
+  overflow-x: auto;
+  padding: 18px;
+  box-shadow: 0 0 8px rgba(0,0,0,0.04);
+}

@@ -3,6 +3,7 @@ extract:
   source: data/uploaded_input.pdf
   retry_count: 3
   retry_delay: 2
+  source_id: default_source
 transform:
   drop_duplicates: true
   dropna: true

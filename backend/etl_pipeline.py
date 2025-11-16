@@ -261,25 +261,30 @@ def generate_schema(df):
     }
     for col in df.columns:
         col_data = df[col]
-        types = col_data.map(infer_type).value_counts().to_dict()
-        types.pop("null", None)
-        t = max(types, key=types.get) if types else "string"
+        non_null = col_data.dropna()
+        # Type inference by most common type among non-nulls
+        type_counts = non_null.map(infer_type).value_counts().to_dict()
+        type_counts.pop("null", None)
+        t = max(type_counts, key=type_counts.get) if type_counts else "string"
         nullable = bool(col_data.isnull().any())
-        examples = [primitive_only(x) for x in list(col_data.dropna().unique()[:3])]
-        confidence = float(types[t] / len(col_data)) if types else 1.0
+        examples = [primitive_only(x) for x in list(non_null.unique()[:3])]
+        # Improved confidence: most common value's proportion
+        value_counts = non_null.value_counts()
+        conf_val = float(value_counts.max() / len(non_null)) if len(non_null) else 1.0
         schema["fields"].append({
             "name": col,
             "path": f"$.{col}",
             "type": t,
             "nullable": nullable,
             "examples": examples,
-            "confidence": confidence
+            "confidence": conf_val
         })
     schema["primary_key_candidates"] = [
         col for col in df.columns
         if bool(getattr(df[col], "is_unique", False)) and not df[col].isnull().any()
     ]
     return schema
+
 
 def load_schema(source_id):
     path = f"schemas/{source_id}_schema.json"
