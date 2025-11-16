@@ -32,7 +32,7 @@ app.post('/run-etl', upload.single('inputFile'), async (req, res) => {
     if (uploadedPath) {
       config.extract.type = fileType;
       config.extract.source = 'data/uploaded_input' + path.extname(uploadedPath);
-      // Use a source_id, default to 'default_source'
+
       config.extract.source_id = config.extract.source_id || 'default_source';
       fs.writeFileSync(configPath, yaml.dump(config));
     }
@@ -56,7 +56,7 @@ app.post('/run-etl', upload.single('inputFile'), async (req, res) => {
       }
       try {
         let tableJson = await csvjson().fromFile(outputCsv);
-        // Serve latest schema JSON too:
+
         let schemaId = config.extract.source_id || 'default_source';
         let schemaPath = path.join(__dirname, 'schemas', schemaId + '_schema.json');
         let schemaJson = null;
@@ -73,7 +73,6 @@ app.post('/run-etl', upload.single('inputFile'), async (req, res) => {
   }
 });
 
-// Endpoint to fetch detected schema for a given source_id
 app.get('/schema/:sourceid', (req, res) => {
   const schemaPath = path.join(__dirname, 'schemas', req.params.sourceid + '_schema.json');
   if (!fs.existsSync(schemaPath)) {
@@ -85,13 +84,13 @@ app.get('/schema/:sourceid', (req, res) => {
   res.json(schema);
 });
 
-// Serve output file for download:
+
 app.get('/download', (req, res) => {
   const filePath = path.resolve(__dirname, 'data/output.csv');
-  res.download(filePath, 'structured_table.csv'); // triggers file save dialog
+  res.download(filePath, 'structured_table.csv'); 
 });
 
-// Make sure the server listens on correct port:
+
 app.listen(5001, () => {
   console.log('Backend running on http://localhost:5001');
 });

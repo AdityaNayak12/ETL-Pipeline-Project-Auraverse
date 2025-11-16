@@ -1,6 +1,6 @@
 extract:
   type: txt
-  source: data/uploaded_input.pdf
+  source: data/uploaded_input.txt
   retry_count: 3
   retry_delay: 2
   source_id: default_source
