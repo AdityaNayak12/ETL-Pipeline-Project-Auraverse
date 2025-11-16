@@ -1,0 +1,6 @@
+{
+  "user": "sarthak",
+  "age": 21,
+  "skills": ["python", "etl", "sql"],
+  "active": true
+}

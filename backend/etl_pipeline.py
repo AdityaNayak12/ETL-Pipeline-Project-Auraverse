@@ -1,17 +1,55 @@
+import os
 import pandas as pd
 import yaml
 import json
-import os
 import time
 import re
+import logging
 from io import StringIO
 from bs4 import BeautifulSoup
 from dateutil.parser import parse as dateparse
 from deepdiff import DeepDiff
 import numpy as np
 
+logging.basicConfig(level=logging.DEBUG)
+
+def read_file_content(file_path):
+    print("[DEBUG]: Provided path:", file_path)
+    print("[DEBUG]: Current working directory:", os.getcwd())
+    print("[DEBUG]: File exists at path?", os.path.exists(file_path))
+    ext = os.path.splitext(file_path)[1].lower()
+    if ext in ('.txt', '.md'):
+        with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+            text = f.read()
+        print("[DEBUG]: Extracted text from .txt/.md preview:")
+        print(repr(text[:300]))
+        return text
+    elif ext == '.pdf':
+        text = ""
+        try:
+            import pdfplumber
+            with pdfplumber.open(file_path) as pdf:
+                text = '\n'.join(page.extract_text() or '' for page in pdf.pages)
+                print("[DEBUG]: pdfplumber extracted PDF preview:")
+                print(repr(text[:300]))
+        except Exception as e:
+            print("[DEBUG]: pdfplumber extraction failed, error:", e)
+        if not text.strip():
+            try:
+                from PyPDF2 import PdfReader
+                reader = PdfReader(file_path)
+                text = '\n'.join(page.extract_text() or '' for page in reader.pages)
+                print("[DEBUG]: PyPDF2 fallback extracted PDF preview:")
+                print(repr(text[:300]))
+            except Exception as e2:
+                print("[DEBUG]: PyPDF2 extraction failed, error:", e2)
+        if not text.strip():
+            raise Exception("No extractable text found in PDF. Is this a scanned/image PDF or empty? Extraction failed.")
+        return text
+    else:
+        raise Exception(f"Unsupported file type: {ext}")
+
 def primitive_only(val):
-    # Converts pandas/NumPy types and non-serializable objects to Python types/strings
     if isinstance(val, (str, int, float, bool)) or val is None:
         return val
     elif isinstance(val, (np.generic,)):
@@ -28,9 +66,7 @@ def flatten_value(val, parent_key="", sep="_"):
             new_key = f"{parent_key}{sep}{k}" if parent_key else k
             items.extend(flatten_value(v, new_key, sep=sep).items())
     elif isinstance(val, list):
-        items.append(
-            (parent_key, ",".join(map(str, [primitive_only(i) for i in val])))
-        )
+        items.append((parent_key, ",".join(map(str, [primitive_only(i) for i in val]))))
     else:
         items.append((parent_key, primitive_only(val)))
     return dict(items)
@@ -46,10 +82,8 @@ def flatten_dataframe(df):
     return pd.DataFrame.from_records(flattened_records)
 
 def extract_structured_blocks(file_path):
-    with open(file_path, 'r', encoding='utf-8') as f:
-        text = f.read()
+    text = read_file_content(file_path)
     results = []
-    # 1. Try strict JSON parse first
     try:
         obj = json.loads(text)
         if isinstance(obj, dict):
@@ -61,7 +95,6 @@ def extract_structured_blocks(file_path):
         print('[ETL DEBUG] Loaded as strict JSON')
     except Exception:
         pass
-    # 2. Regexp search for JSON blocks inside text
     json_blocks = re.findall(r'\{[\s\S]+?\}', text)
     for block in json_blocks:
         try:
@@ -76,7 +109,6 @@ def extract_structured_blocks(file_path):
                         results.append(entry)
         except:
             pass
-    # 3. List blocks (top-level arrays)
     list_blocks = re.findall(r'\[[\s\S]+?\]', text)
     for block in list_blocks:
         try:
@@ -88,7 +120,6 @@ def extract_structured_blocks(file_path):
                         results.append(entry)
         except:
             pass
-    # 4. CSV-like tables
     csv_blocks = re.findall(r'((?:[\w" ]+,)+[\w" ]+\n(?:[^\n]*\n?)+)', text)
     for block in csv_blocks:
         try:
@@ -98,7 +129,6 @@ def extract_structured_blocks(file_path):
                 results.append(d)
         except:
             pass
-    # 5. YAML blocks
     yaml_blocks = re.findall(r'(?:[a-zA-Z0-9_]+:\s[^\n]+\n(?:\s+- .+\n)*)+', text)
     for block in yaml_blocks:
         try:
@@ -108,7 +138,6 @@ def extract_structured_blocks(file_path):
                 results.append(yaml_data)
         except:
             pass
-    # 6. HTML tags/text
     soup = BeautifulSoup(text, 'html.parser')
     for tag in soup.find_all(True):
         tag_text = tag.get_text(strip=True)
@@ -117,15 +146,12 @@ def extract_structured_blocks(file_path):
             for attr, val in tag.attrs.items():
                 row[f"_html_attr_{attr}"] = str(val)
             results.append(row)
-    # 7. Code blocks
     raw_blocks = re.findall(r'(def .+?:\n(?:\s+.+\n)*|print\(.+\))', text)
     for code in raw_blocks:
         results.append({'_code_block': code.replace('\n', ' '), '_source_type': 'code'})
-    # 8. Log blocks
     log_blocks = re.findall(r'\[\d{4}-\d{2}-\d{2} .+?\] .+', text)
     for log in log_blocks:
         results.append({'_log_entry': log, '_source_type': 'log'})
-    # 9. Raw fallback
     if not results:
         results.append({'_error': 'No extractable block found', '_source_type': 'error'})
     print("[ETL DEBUG] Total extracted blocks:", len(results), "Type breakdown:", dict(pd.Series([r.get('_source_type') for r in results]).value_counts()))
@@ -133,76 +159,78 @@ def extract_structured_blocks(file_path):
     return df
 
 def extract(cfg):
-    typ = cfg['type']
     src = cfg['source']
-    retries = cfg.get('retry_count', 3)
-    retry_delay = cfg.get('retry_delay', 1)
-    attempt = 0
-    if src.endswith('.txt') or src.endswith('.html') or src.endswith('.htm'):
-        df = extract_structured_blocks(src)
-        print(f"[ETL DEBUG] Shape after extract: {df.shape}")
-        return df
-    while attempt < retries:
-        try:
-            if typ == "csv":
-                df = pd.read_csv(src, low_memory=False)
-            elif typ == "json":
-                with open(src, 'r', encoding='utf-8') as f:
-                    obj = json.load(f)
-                    # Handles dict or list
-                    if isinstance(obj, dict):
-                        df = pd.json_normalize(obj)
-                    elif isinstance(obj, list):
-                        df = pd.json_normalize(obj)
-                    else:
-                        df = pd.DataFrame([{'_error': 'Unsupported JSON', '_source_type': 'error'}])
-            elif typ == "api":
-                import requests
-                res = requests.get(src)
-                res.raise_for_status()
-                df = pd.json_normalize(res.json())
-            else:
-                raise ValueError(f"Unknown extract type: {typ}")
-            print(f"[ETL DEBUG] Extracted shape: {df.shape}")
-            return df
-        except Exception as e:
-            print(f"[ETL DEBUG] Extract error on attempt {attempt+1}: {e}")
-            attempt += 1
-            if attempt < retries:
-                time.sleep(retry_delay)
-    return pd.DataFrame([{'_error': 'Extraction failed', '_source_type': 'error'}])
+    df = extract_structured_blocks(src)
+    print(f"[ETL DEBUG] Shape after extract: {df.shape}")
+    return df
 
 def normalize_value(val):
     if val is None or (isinstance(val, float) and pd.isna(val)):
         return None
-    s = str(val).replace(',', '').replace('$', '').strip()
-    if s.lower() in ('na', 'n/a', 'null', 'none', ''):
+    s = str(val).strip()
+    s_lower = s.lower()
+    
+    # Null or empty values
+    if s_lower in ('na', 'n/a', 'null', 'none', '', 'nan'):
         return None
+    
+    # Boolean values
+    if s_lower in ('true', 'yes', '1'):
+        return True
+    if s_lower in ('false', 'no', '0'):
+        return False
+    
+    # Percentages - convert to float 0-1
+    percent_match = re.match(r'^(\d+(\.\d+)?)%$', s)
+    if percent_match:
+        try:
+            return float(percent_match.group(1)) / 100.0
+        except Exception as e:
+            logging.debug(f"normalize_value: Could not convert percentage '{s}': {e}")
+            return s
+    
+    # Email normalization - lowercase and strip spaces
+    if re.match(r'^[\w\.\+-]+@[\w\.-]+\.[a-zA-Z]{2,}$', s):
+        return s_lower
+    
+    # Phone numbers - simple normalization by removing non-digit chars
+    if re.match(r'^\+?[\d\s\-\(\)]+$', s):
+        digits = re.sub(r'[^\d]', '', s)
+        return digits
+    
+    # Currency removal and number parsing
+    s_no_currency = s.replace(',', '').replace('$', '').replace('₹','').strip()
     try:
-        return int(s)
+        return int(s_no_currency)
     except:
         try:
-            return float(s)
+            return float(s_no_currency)
         except:
             try:
                 dt = dateparse(s)
                 return dt.isoformat()
-            except:
-                return val
+            except Exception as e:
+                return s_lower
 
 def normalize_data(df):
     for col in df.columns:
         try:
-            sample = df[col].dropna().astype(str).values[0]
+            sample_values = df[col].dropna().astype(str).values
+            if len(sample_values) == 0:
+                continue
+            sample = sample_values[0]
+            # Guess if date col by regex
             if len(sample) > 8 and re.match(r'\d{4}-\d{2}-\d{2}', sample):
                 df[col] = df[col].map(normalize_value)
-            elif df[col].dropna().map(lambda x: bool(re.match(r'^\$?\d+\.?\d*$', str(x).replace(",", "")) or pd.api.types.is_numeric_dtype(x))).all():
+            elif df[col].dropna().map(lambda x: bool(re.match(r'^(\$|₹)?\d+(\.\d+)?%?$', str(x).replace(",", "")) or pd.api.types.is_numeric_dtype(x))).all():
                 df[col] = df[col].map(normalize_value)
             else:
-                df[col] = df[col].fillna(None)
-        except:
+                # Trim and lowercase strings
+                df[col] = df[col].fillna('').map(lambda x: str(x).strip().lower() if pd.notna(x) else None)
+        except Exception as e:
+            logging.debug(f"normalize_data: Skipping column '{col}' due to error: {e}")
             continue
-    print(f"[ETL DEBUG] Shape after normalize: {df.shape}")
+    logging.debug(f"[ETL DEBUG] Shape after normalize: {df.shape}")
     return df
 
 def infer_type(val):
